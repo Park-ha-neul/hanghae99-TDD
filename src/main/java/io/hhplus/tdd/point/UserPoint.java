@@ -24,10 +24,10 @@ public record UserPoint(
             throw new IllegalArgumentException("충전할 포인트는 0보다 커야 합니다.");
         }
         if(amount > 100000){
-            throw new IllegalArgumentException("최대 충전 포인트는 100000점 입니다.");
+            throw new IllegalArgumentException("1회 최대 충전 포인트는 100000점 입니다.");
         }
         long updatedAmount = this.point + amount;
-        if(updatedAmount > 100000){
+        if(updatedAmount > 1000000){
             throw new IllegalArgumentException("사용자 최대 포인트 한도(1000000점)를 초과하였습니다.");
         }
 

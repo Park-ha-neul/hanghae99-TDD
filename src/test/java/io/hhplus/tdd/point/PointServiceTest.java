@@ -2,7 +2,6 @@ package io.hhplus.tdd.point;
 
 import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
-import org.apache.catalina.User;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -120,7 +119,7 @@ public class PointServiceTest {
     class chargeUserPoint {
         @Test
         @DisplayName("정상 케이스: 기존 2000 포인트에 1000 충전함")
-        void chargeUserPoint_Success_WhenAmountIsValid() {
+        void chargeUserPoint_Success_WhenPointIsValid() {
             // given
             Long userId = 1L;
             Long amount = 1000L;
@@ -138,7 +137,7 @@ public class PointServiceTest {
 
         @Test
         @DisplayName("비정상 케이스: 충전할 포인트가 0보다 작은 경우")
-        void chargeUserPoint_ThrowsException_WhenAmountLessThanZero(){
+        void chargeUserPoint_ThrowsException_WhenPointLessThanZero(){
             Long userId = 1L;
             Long amount = -1L;
             UserPoint mockUserPoint = createMockUserPoint(userId);
@@ -155,7 +154,7 @@ public class PointServiceTest {
 
         @Test
         @DisplayName("비정상 케이스: 1회 충전할 포인트가 100000보다 큰 경우")
-        void chargeUserPoint_ThrowsException_WhenAmountMoreThen100000(){
+        void chargeUserPoint_ThrowsException_WhenPointMoreThan100000(){
             Long userId = 1L;
             Long amount = 200000L;
             UserPoint mockUserPoint = createMockUserPoint(userId);
@@ -194,7 +193,7 @@ public class PointServiceTest {
     class usePoint{
         @Test
         @DisplayName("정상 케이스: 총 2000 포인트에서 1000 포인트를 사용하는 경우")
-        void usePoint_Success_WhenAmountIsValid(){
+        void usePoint_Success_WhenPointIsValid(){
             //given: 기본 mock 객체를 생성한다. (보유 포인트: 2000)
             Long userId = 1L;
             Long amount = 1000L;
