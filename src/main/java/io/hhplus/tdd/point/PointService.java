@@ -50,7 +50,7 @@ public class PointService {
      *  2. 1회 충전 포인트보다 더 많은 포인트를 충전할 경우 (1회 충전 제한: 100000)
      *  3. 최대 잔고가 넘었는데 더 충전을 하려고 하는 경우 (사용자 최대 포인트 한도: 1000000)
      */
-    public UserPoint chargeUserPoint(Long userId, Long amount) {
+    public synchronized UserPoint chargeUserPoint(Long userId, Long amount) {
         // 1. 사용자 조회(없으면 새로 생성)
         UserPoint userPoint = userPointTable.selectById(userId);
 
@@ -62,6 +62,7 @@ public class PointService {
         pointHistoryTable.insert(userId, amount, TransactionType.CHARGE, System.currentTimeMillis());
 
         return new UserPoint(userId, updatedAmount, System.currentTimeMillis());
+
     }
 
     /**
@@ -70,7 +71,7 @@ public class PointService {
      *  1. 사용 포인트가 음수인 경우
      *  2. 포인트가 부족한 경우 (잔고 부족)
      */
-    public UserPoint usePoint(Long userId, Long amount) {
+    public synchronized UserPoint usePoint(Long userId, Long amount) {
         // 1. 사용자 조회(없으면 새로 생성)
         UserPoint userPoint = userPointTable.selectById(userId);
 
