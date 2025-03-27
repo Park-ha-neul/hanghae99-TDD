@@ -7,244 +7,198 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Collections;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
-@DisplayName("포인트 서비스")
+@ExtendWith(SpringExtension.class)
+@SpringBootTest
+@DisplayName("포인트 서비스 통합 테스트")
 public class PointServiceTest {
 
-    @Mock
+    @Autowired
     private UserPointTable userPointTable;
 
-    @Mock
+    @Autowired
     private PointHistoryTable pointHistoryTable;
 
-    private UserPoint createMockUserPoint(Long userId){
-        return new UserPoint(userId, 2000L, 17777);
-    };
-
-    private List<PointHistory> createMockPointHistory(Long userId, Long amount){
-        PointHistory mockPointHistory = new PointHistory(1L, userId, amount, TransactionType.CHARGE, 17777);
-        return Collections.singletonList(mockPointHistory);
-    }
-
-    @InjectMocks
+    @Autowired
     private PointService pointService;
 
     @Nested
-    @DisplayName("포인트 조회 기능 테스트")
-    class getUserPoint {
+    @DisplayName("포인트 조회")
+    class getUserPoint{
         @Test
-        @DisplayName("정상 케이스")
-        void getUserPointById_Success_WhenUserIdIsValid() {
-            // given: 테스트 데이터 및 Mock 설정
+        @DisplayName("정상 케이스: 포인트 조회")
+        void getUserPoint_Success_WhenUserIdIsValid(){
             Long userId = 1L;
-            UserPoint mockUserPoint = createMockUserPoint(userId);
-            when(userPointTable.selectById(userId)).thenReturn(mockUserPoint);
+            Long amount = 1000L;
 
-            // when: 서비스 호출
+            userPointTable.insertOrUpdate(1L, amount);
+
+            //when
             UserPoint result = pointService.getUserPointById(userId);
 
-            // then: 결과 검증
             Assertions.assertAll(
-                    () -> Assertions.assertNotNull(result),
-                    () -> Assertions.assertEquals(userId, result.id()),
-                    () -> Assertions.assertEquals(mockUserPoint.point(), result.point())
+                    () -> assertThat(result.id()).isEqualTo(userId),
+                    () -> assertThat(result.point()).isEqualTo(amount)
             );
         }
 
         @Test
-        @DisplayName("비정상 케이스: userId가 음수인 경우")
-        void getUserPointById_ThrowsException_WhenUserIdLessThanZero() {
-            // given
+        @DisplayName("비정상 케이스: userId가 음수인 경우 IllegalArgumentException 오류 발생")
+        void getUserPoint_IllegalArgumentException_WhenUserIdLessThanZero(){
             Long userId = -1L;
+            Long amount = 1000L;
 
-            // 예외 발생 여부 검증
+            userPointTable.insertOrUpdate(userId, amount);
+
             IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
                 pointService.getUserPointById(userId);
             });
 
-            // 예외 메시지 검증
-            assertThat(exception.getMessage()).isEqualTo("userId는 음수일 수 없습니다.");
+            Assertions.assertTrue(exception.getMessage().contains("userId는 음수일 수 없습니다."));
         }
     }
 
     @Nested
     @DisplayName("포인트 이력 조회")
-    class getPointHistory {
+    class getUserPointHistory{
         @Test
-        @DisplayName("정상 케이스")
-        void getUserHistoryById_Success_WhenUserIdIsValid() {
-            //given
+        @DisplayName("정상 케이스: 포인트 이력 조회")
+        void getUserPointHistory_Success_WhenUserIdIsValid(){
             Long userId = 1L;
-            Long amount = 100L;
-            List<PointHistory> mockUserPoint = createMockPointHistory(userId, amount);
-            when(pointHistoryTable.selectAllByUserId(userId)).thenReturn(mockUserPoint);
 
-            //when
+            pointHistoryTable.insert(userId, 1000L, TransactionType.USE, 1777);
+
             List<PointHistory> result = pointService.getUserHistoryById(userId);
 
-            //then
+            System.out.println("userID : " + result.get(0).userId());
+            System.out.println("amount : " + result.get(0).amount());
+            System.out.println("type : " + result.get(0).type());
+
             Assertions.assertAll(
-                    () -> Assertions.assertNotNull(result),
-                    () -> Assertions.assertEquals(mockUserPoint, result)
+                    () -> assertThat(result.get(0).userId()).isEqualTo(userId),
+                    () -> assertThat(result.get(0).amount()).isEqualTo(1000L),
+                    () -> assertThat(result.get(0).type()).isEqualTo(TransactionType.USE)
             );
         }
 
         @Test
-        @DisplayName("비정상 케이스: userId가 음수인 경우")
-        void getUserHistoryById_ThrowsException_WhenUserIdLessThanZero(){
+        @DisplayName("비정상 케이스: userId가 음수인 경우 IllegalArgumentException 오류 발생")
+        void getUserPointHistory_IllegalArgumentException_WhenUserIdLessThanZero(){
             Long userId = -1L;
+            pointHistoryTable.insert(userId, 100L, TransactionType.CHARGE, 1777);
 
-            // 예외 발생 여부 검증
-            IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class, () ->
-                pointService.getUserHistoryById(userId)
-            );
+            IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+                pointService.getUserHistoryById(userId);
+            });
 
-            // 예외 메세지 검증
-            assertThat(exception.getMessage()).isEqualTo("userId는 음수일 수 없습니다.");
+            Assertions.assertTrue(exception.getMessage().contains("userId는 음수일 수 없습니다."));
         }
     }
 
     @Nested
     @DisplayName("포인트 충전")
-    class chargeUserPoint {
+    class chargePoint{
         @Test
-        @DisplayName("정상 케이스: 기존 2000 포인트에 1000 충전함")
-        void chargeUserPoint_Success_WhenPointIsValid() {
-            // given
+        @DisplayName("정상 케이스: 포인트 충전")
+        void chargePoint_Success_WhenPointIsValid(){
             Long userId = 1L;
-            Long amount = 1000L;
-            UserPoint mockUserPoint = createMockUserPoint(userId);
-            when(userPointTable.selectById(userId)).thenReturn(mockUserPoint);
+            Long amount = 100L;
+            userPointTable.insertOrUpdate(userId, 1000L);
 
-            // when
             UserPoint result = pointService.chargeUserPoint(userId, amount);
 
-            // then
-            Assertions.assertNotNull(result);  // 반환값이 null이 아님
-            Assertions.assertEquals(userId, result.id());
-            Assertions.assertEquals(amount + mockUserPoint.point(), result.point());
+            assertThat(result.point()).isEqualTo(1000L + amount);
         }
 
         @Test
-        @DisplayName("비정상 케이스: 충전할 포인트가 0보다 작은 경우")
-        void chargeUserPoint_ThrowsException_WhenPointLessThanZero(){
+        @DisplayName("비정상 케이스: 포인트가 음수인 경우 IllegalArgumentException 오류 발생")
+        void chargePoint_IllegalArgumentException_WhenPointLessThanZero(){
             Long userId = 1L;
-            Long amount = -1L;
-            UserPoint mockUserPoint = createMockUserPoint(userId);
-            when(userPointTable.selectById(userId)).thenReturn(mockUserPoint);
+            Long amount = -100L;
+            userPointTable.insertOrUpdate(userId, 1000L);
 
-            // 예외 발생 여부 검증
             IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
                 pointService.chargeUserPoint(userId, amount);
             });
 
-            // 예외 메시지 검증
             Assertions.assertTrue(exception.getMessage().contains("충전할 포인트는 0보다 커야 합니다."));
         }
 
         @Test
-        @DisplayName("비정상 케이스: 1회 충전할 포인트가 100000보다 큰 경우")
-        void chargeUserPoint_ThrowsException_WhenPointMoreThan100000(){
+        @DisplayName("비정상 케이스: 1회 최대 충전 포인트를 초과한 경우 IllegalArgumentException 오류 발생")
+        void chargePoint_IllegalArgumentException_WhenPointExceededLimit(){
             Long userId = 1L;
             Long amount = 200000L;
-            UserPoint mockUserPoint = createMockUserPoint(userId);
-            when(userPointTable.selectById(userId)).thenReturn(mockUserPoint);
+            userPointTable.insertOrUpdate(userId, 1000L);
 
-            // 예외 발생 여부 검증
             IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
                 pointService.chargeUserPoint(userId, amount);
             });
 
-            // 예외 메시지 검증
-            Assertions.assertTrue(exception.getMessage().contains("최대 충전 포인트는 100000점 입니다."));
+            Assertions.assertTrue(exception.getMessage().contains("1회 최대 충전 포인트는 100000점 입니다."));
         }
 
         @Test
-        @DisplayName("비정상 케이스: 사용자가 최대 포인트 한도(1000000)를 초과하여 충전할 경우")
-        void chargeUserPoint_ThrowsException_WhenExceedMaxPointLimit(){
+        @DisplayName("비정상 케이스: 최대 포인트 한도를 넘은 경우 IllegalArgumentException 오류 발생")
+        void chargePoint_IllegalArgumentException_WhenUserPointExceededLimit(){
             Long userId = 1L;
             Long amount = 1000L;
-            UserPoint mockUserPoint = new UserPoint(userId, 1000000, 17777);
-            when(userPointTable.selectById(userId)).thenReturn(mockUserPoint);
+            userPointTable.insertOrUpdate(userId, 1000000L);
 
-            // 예외 발생 여부 검증
             IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
                 pointService.chargeUserPoint(userId, amount);
             });
 
-            // 예외 메시지 검증
             Assertions.assertTrue(exception.getMessage().contains("사용자 최대 포인트 한도(1000000점)를 초과하였습니다."));
         }
-
     }
 
     @Nested
     @DisplayName("포인트 사용")
     class usePoint{
         @Test
-        @DisplayName("정상 케이스: 총 2000 포인트에서 1000 포인트를 사용하는 경우")
+        @DisplayName("정상 케이스: 포인트 사용")
         void usePoint_Success_WhenPointIsValid(){
-            //given: 기본 mock 객체를 생성한다. (보유 포인트: 2000)
             Long userId = 1L;
             Long amount = 1000L;
-            UserPoint mockUserPoint = createMockUserPoint(userId);
-            when(userPointTable.selectById(userId)).thenReturn(mockUserPoint);
+            userPointTable.insertOrUpdate(userId, 2000L);
 
-            //when: 사용하는 서비스를 호출하는데 1000L를 사용하게끔 설정한다.
-            UserPoint updatePoint = pointService.usePoint(userId, amount);
+            UserPoint result = pointService.usePoint(userId, amount);
 
-            // then: 남은 포인트가 1000L인지 확인한다.
-            Assertions.assertAll(
-                    () -> Assertions.assertNotNull(updatePoint),
-                    () -> Assertions.assertEquals(mockUserPoint.point() - amount, updatePoint.point())
-            );
+            assertThat(result.point()).isEqualTo(1000L);
         }
 
         @Test
-        @DisplayName("비정상 케이스 : 포인트가 0보다 작은 경우")
-        void usePoint_ThrowsException_WhenPointLessThanZero(){
+        @DisplayName("비정상 케이스: 사용할 포인트가 음수인 경우 IllegalArgumentException 오류 발생")
+        void usePoint_IllegalArgumentException_WhenPointLessThanZero(){
             Long userId = 1L;
-            Long amount = -10L;
+            Long amount = -100L;
+            userPointTable.insertOrUpdate(userId, 1000L);
 
-            UserPoint mockUserPoint = createMockUserPoint(userId);
-            when(userPointTable.selectById(userId)).thenReturn(mockUserPoint);
-
-            // 예외 발생 여부 검증
             IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
                 pointService.usePoint(userId, amount);
             });
 
-            // 예외 메시지 검증
-            assertThat(exception.getMessage()).contains("사용할 포인트는 0보다 커야 합니다.");
-
+            Assertions.assertTrue(exception.getMessage().contains("사용할 포인트는 0보다 커야 합니다."));
         }
 
         @Test
-        @DisplayName("비정상 케이스 : 잔고가 부족할 경우")
-        void usePoint_ThrowsException_WhenNotEnoughPoint(){
-            //given: 기본 mock 객체를 생성한다. (보유 포인트: 2000)
+        @DisplayName("비정상 케이스: 잔고가 부족한 경우 IllegalArgumentException 오류 발생")
+        void usePoint_IllegalArgumentException_WhenPointNotEnough(){
             Long userId = 1L;
-            Long amount = 3000L;
-            UserPoint mockUserPoint = new UserPoint(1L, 2000L, System.currentTimeMillis());
-            when(userPointTable.selectById(userId)).thenReturn(mockUserPoint);
+            Long amount = 2000L;
+            userPointTable.insertOrUpdate(userId, 1000L);
 
-            // 예외 발생 여부 검증
             IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
                 pointService.usePoint(userId, amount);
             });
 
-            // 예외 메시지 검증
-            assertThat(exception.getMessage()).contains("포인트가 부족합니다.");
+            Assertions.assertTrue(exception.getMessage().contains("포인트가 부족합니다."));
         }
     }
 }
