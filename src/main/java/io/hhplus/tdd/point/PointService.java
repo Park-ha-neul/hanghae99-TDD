@@ -2,7 +2,6 @@ package io.hhplus.tdd.point;
 
 import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -10,9 +9,14 @@ import java.util.List;
 @Service
 public class PointService {
 
-    @Autowired
-    private UserPointTable userPointTable; // 유저 포인트 조회, 유저 포인트 삽입
-    private PointHistoryTable pointHistoryTable; // 포인트 내역 쌓기, 이력 조회
+    private final UserPointTable userPointTable; // 유저 포인트 조회, 유저 포인트 삽입
+
+    private final PointHistoryTable pointHistoryTable; // 포인트 내역 쌓기, 이력 조회
+
+    public PointService(UserPointTable userPointTable, PointHistoryTable pointHistoryTable) {
+        this.userPointTable = userPointTable;
+        this.pointHistoryTable = pointHistoryTable;
+    }
 
     /**
      * 포인트 조회 서비스

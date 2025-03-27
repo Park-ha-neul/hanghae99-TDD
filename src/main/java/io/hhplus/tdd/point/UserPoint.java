@@ -1,18 +1,10 @@
 package io.hhplus.tdd.point;
 
-import io.hhplus.tdd.database.PointHistoryTable;
-import io.hhplus.tdd.database.UserPointTable;
-import org.springframework.beans.factory.annotation.Autowired;
-
 public record UserPoint(
         long id,
         long point,
         long updateMillis
 ) {
-
-    @Autowired
-    private static UserPointTable userPointTable;
-    private static PointHistoryTable pointHistoryTable;
 
     public static UserPoint empty(long id) {
         return new UserPoint(id, 0, System.currentTimeMillis());
