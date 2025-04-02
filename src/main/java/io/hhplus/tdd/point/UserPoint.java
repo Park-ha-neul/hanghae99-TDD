@@ -1,5 +1,7 @@
 package io.hhplus.tdd.point;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 public record UserPoint(
         long id,
         long point,
